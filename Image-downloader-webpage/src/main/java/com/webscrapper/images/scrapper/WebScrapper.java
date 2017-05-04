@@ -31,9 +31,10 @@ public class WebScrapper {
 			URL url = new URL(link);
 			String fileName = url.getFile();
 			String destName = "src/main/java/downloads" + fileName.substring(fileName.lastIndexOf("/"));
-			//System.out.println(destName);
+			// System.out.println(destName);
 
 			InputStream is = url.openStream();
+			InputStream isNew = url.openStream();
 			OutputStream os = new FileOutputStream(destName);
 
 			byte[] b = new byte[2048];
@@ -41,13 +42,20 @@ public class WebScrapper {
 			long fileSizeBytes = 0;
 
 			while ((length = is.read(b)) != -1) {
-				os.write(b, 0, length);
 				fileSizeBytes += length;
 			}
-
 			is.close();
-			if (fileSizeBytes > 100000)
-				os.close();
+
+			// Download all images > 100KB
+			if (fileSizeBytes > 100000) {
+				isNew = url.openStream();
+				while ((length = isNew.read(b)) != -1) {
+					os.write(b, 0, length);
+				}
+			}
+
+			isNew.close();
+			os.close();
 		}
 	}
 

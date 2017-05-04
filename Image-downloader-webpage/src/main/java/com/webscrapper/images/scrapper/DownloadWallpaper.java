@@ -13,5 +13,7 @@ public class DownloadWallpaper {
 		input.close();
 
 		WebScrapper.downloadImages(url);
+		
+		System.out.println("Downloaded!");
 	}
 }
