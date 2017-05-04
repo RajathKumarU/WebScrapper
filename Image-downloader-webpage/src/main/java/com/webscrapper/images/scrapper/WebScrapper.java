@@ -35,7 +35,6 @@ public class WebScrapper {
 
 			InputStream is = url.openStream();
 			InputStream isNew = url.openStream();
-			OutputStream os = new FileOutputStream(destName);
 
 			byte[] b = new byte[2048];
 			int length;
@@ -49,13 +48,13 @@ public class WebScrapper {
 			// Download all images > 100KB
 			if (fileSizeBytes > 100000) {
 				isNew = url.openStream();
+				OutputStream os = new FileOutputStream(destName);
 				while ((length = isNew.read(b)) != -1) {
 					os.write(b, 0, length);
 				}
+				os.close();
 			}
-
 			isNew.close();
-			os.close();
 		}
 	}
 
