@@ -31,7 +31,6 @@ public class WebScrapper {
 			URL url = new URL(link);
 			String fileName = url.getFile();
 			String destName = "src/main/java/downloads" + fileName.substring(fileName.lastIndexOf("/"));
-			// System.out.println(destName);
 
 			InputStream is = url.openStream();
 			InputStream isNew = url.openStream();
@@ -53,6 +52,7 @@ public class WebScrapper {
 					os.write(b, 0, length);
 				}
 				os.close();
+				System.out.println("Downloaded " + destName);
 			}
 			isNew.close();
 		}
