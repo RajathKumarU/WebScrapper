@@ -12,7 +12,8 @@ public class DownloadWallpaper {
 		System.out.println("Find images downloaded in /src/main/java/downloads");
 		input.close();
 
-		WebScrapper.downloadImages(url);
+		//WebScrapper.downloadImages(url);
+		WebScrapper.downloadImages(url, 100000, 10);
 		
 		System.out.println("Downloaded!");
 	}
