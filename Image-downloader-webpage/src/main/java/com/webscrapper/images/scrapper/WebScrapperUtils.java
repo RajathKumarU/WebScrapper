@@ -73,6 +73,7 @@ public class WebScrapperUtils {
 			for (String link : imgLinks) {
 				// Initialize each thread and run in parallel.
 				thread[i] = new Thread(new downloadImage(link, fileSizeThresholdBytes));
+				System.out.println("Running [Thread - " + i + "] : Downloading " + link);
 				thread[i].start();
 
 				i++;
@@ -86,13 +87,17 @@ public class WebScrapperUtils {
 		else {
 			List<String> links = new LinkedList<String>();
 			links.addAll(imgLinks);
+			int size = links.size();
 
 			int i;
 			for (i = 0; i < links.size(); i += threadCount) {
-				Thread thread[] = new Thread[threadCount];
-				for (int j = i; j < threadCount; j++) {
+				int lowerThreshold = (threadCount < (links.size() - i)) ? threadCount : (links.size() - i);
+
+				Thread thread[] = new Thread[lowerThreshold];
+				for (int j = 0; j < lowerThreshold; j++) {
 					// Initialize each thread and run in parallel.
-					thread[j] = new Thread(new downloadImage(links.get(j), fileSizeThresholdBytes));
+					thread[j] = new Thread(new downloadImage(links.get(i + j), fileSizeThresholdBytes));
+					System.out.println("Running [Thread - " + j + "] : Downloading " + links.get(i + j));
 					thread[j].start();
 				}
 
@@ -100,18 +105,6 @@ public class WebScrapperUtils {
 				waitUntilAllThreadsComplete(thread);
 
 			}
-
-			// Process remaining links after loop exits.
-			Thread thread[] = new Thread[links.size() - i - 1];
-			while (i < links.size()) {
-				thread[links.size() - i - 1] = new Thread(new downloadImage(links.get(i), fileSizeThresholdBytes));
-				thread[links.size() - i - 1].start();
-
-				i++;
-			}
-
-			// wait for all threads to complete.
-			waitUntilAllThreadsComplete(thread);
 		}
 	}
 
@@ -167,11 +160,11 @@ public class WebScrapperUtils {
 	 * This method gets all the image links i.e. absolute as well as relative
 	 * path from a page source.
 	 */
-	public static Set<String> getImageLinksFromSource(StringBuilder pageSource) {
+	public static Set<String> getImageLinksFromSource(String urlString, StringBuilder pageSource) {
 		Set<String> allImageLinks = new HashSet<String>();
 
 		allImageLinks.addAll(getAllDirectImageLinks(pageSource));
-		allImageLinks.addAll(getAllImagesFromImageTag(pageSource));
+		allImageLinks.addAll(getAllImagesFromImageTag(urlString, pageSource));
 
 		// Print all image links in the set.
 		for (Iterator<String> iterator = allImageLinks.iterator(); iterator.hasNext();) {
@@ -186,8 +179,43 @@ public class WebScrapperUtils {
 	 * This method gets all the image urls that are in img tag with relative
 	 * path specified.
 	 */
-	public static List<String> getAllImagesFromImageTag(StringBuilder pageSource) {
+	public static List<String> getAllImagesFromImageTag(String urlString, StringBuilder pageSource) {
 		List<String> links = new LinkedList<String>();
+
+		StringBuilder sourceAfterFindingImg = pageSource;
+		int indx = -1;
+		while ((indx = sourceAfterFindingImg.indexOf("<img")) != -1) {
+			String relativePath = "";
+
+			String imgTagString = sourceAfterFindingImg.substring(indx, sourceAfterFindingImg.indexOf(">", indx));
+			int indxOfSrc = imgTagString.toLowerCase().indexOf("src=");
+			String srcAttribute = "";
+
+			if (imgTagString.charAt(indxOfSrc + 4) == '\'')
+				srcAttribute = imgTagString.substring(indxOfSrc, imgTagString.indexOf("'", indxOfSrc + 5));
+			else
+				srcAttribute = imgTagString.substring(indxOfSrc, imgTagString.indexOf("\"", indxOfSrc + 5));
+
+			relativePath = srcAttribute.toLowerCase().replaceAll("src=", "").replaceAll("'", "").replaceAll("\"", "");
+
+			if (relativePath.endsWith("jpg") || relativePath.endsWith("jpeg") || relativePath.endsWith("png")
+					|| relativePath.endsWith("bmp")) {
+				String currDirInUrl = urlString.substring(0, urlString.lastIndexOf("/"));
+
+				if (relativePath.startsWith("//") && currDirInUrl.startsWith("https"))
+					links.add("https:" + relativePath);
+				else if (relativePath.startsWith("//") && currDirInUrl.startsWith("http"))
+					links.add("http:" + relativePath);
+				else if (relativePath.startsWith("/"))
+					links.add(currDirInUrl + relativePath);
+				else if (relativePath.matches("\\.\\./\\w"))
+					links.add(currDirInUrl.substring(0, currDirInUrl.lastIndexOf("/")) + relativePath);
+				else if (relativePath.matches("\\w"))
+					links.add(currDirInUrl + "/" + relativePath);
+			}
+
+			sourceAfterFindingImg = new StringBuilder(sourceAfterFindingImg.substring(indx + 1));
+		}
 
 		return links;
 	}
