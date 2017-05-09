@@ -62,9 +62,12 @@ public class WebScrapperUtils {
 			}
 		}
 
+		/* Run normally without any threads. */
 		if (threadCount == 0) {
 			downloadImagesFromUrls(imgLinks, fileSizeThresholdBytes);
-		} else if (threadCount < 0) {
+		}
+		/* No of threads are equal to no of links. */
+		else if (threadCount < 0) {
 			int i = 0;
 			Thread thread[] = new Thread[imgLinks.size()];
 			for (String link : imgLinks) {
@@ -75,50 +78,30 @@ public class WebScrapperUtils {
 				i++;
 			}
 
-			/*
-			 * This is used to wait main thread until all the other threads are
-			 * completed.
-			 */
-			boolean checkIsThreadAlive = true;
-			while (checkIsThreadAlive) {
-				checkIsThreadAlive = false;
-				for (int j = 0; j < imgLinks.size(); j++) {
-					if (thread[j].isAlive()) {
-						checkIsThreadAlive = true;
-					}
-				}
-			}
+			// wait for all threads to complete.
+			waitUntilAllThreadsComplete(thread);
 
-		} else {
+		}
+		/* Creates specific number of threads at a time. */
+		else {
 			List<String> links = new LinkedList<String>();
 			links.addAll(imgLinks);
 
 			int i;
 			for (i = 0; i < links.size(); i += threadCount) {
-				Thread thread[] = new Thread[links.size()];
+				Thread thread[] = new Thread[threadCount];
 				for (int j = i; j < threadCount; j++) {
 					// Initialize each thread and run in parallel.
 					thread[j] = new Thread(new downloadImage(links.get(j), fileSizeThresholdBytes));
 					thread[j].start();
 				}
 
-				/*
-				 * This is used to wait main thread until all the other threads
-				 * are completed.
-				 */
-				boolean checkIsThreadAlive = true;
-				while (checkIsThreadAlive) {
-					checkIsThreadAlive = false;
-					for (int j = i; j < threadCount; j++) {
-						if (thread[j].isAlive()) {
-							checkIsThreadAlive = true;
-						}
-					}
-				}
+				// wait for all threads to complete.
+				waitUntilAllThreadsComplete(thread);
+
 			}
 
 			// Process remaining links after loop exits.
-			int iValue = i;
 			Thread thread[] = new Thread[links.size() - i - 1];
 			while (i < links.size()) {
 				thread[links.size() - i - 1] = new Thread(new downloadImage(links.get(i), fileSizeThresholdBytes));
@@ -127,23 +110,30 @@ public class WebScrapperUtils {
 				i++;
 			}
 
-			/*
-			 * This is used to wait main thread until all the other threads are
-			 * completed.
-			 */
-			boolean checkIsThreadAlive = true;
-			while (checkIsThreadAlive) {
-				checkIsThreadAlive = false;
-				for (int j = iValue; j < links.size(); j++) {
-					if (thread[j].isAlive()) {
-						checkIsThreadAlive = true;
-					}
+			// wait for all threads to complete.
+			waitUntilAllThreadsComplete(thread);
+		}
+	}
+
+	/*
+	 * This is used to wait main thread until all the other threads are
+	 * completed.
+	 */
+	public static void waitUntilAllThreadsComplete(Thread[] thread) {
+		boolean checkIsThreadAlive = true;
+		while (checkIsThreadAlive) {
+			checkIsThreadAlive = false;
+			for (int j = 0; j < thread.length; j++) {
+				if (thread[j].isAlive()) {
+					checkIsThreadAlive = true;
 				}
 			}
 		}
 	}
 
-	/* This method downloads the image to a specified location from given url */
+	/*
+	 * This method downloads the image to a specified location from given url.
+	 */
 	public static void downloadImageFromUrl(String link, long fileSizeThresholdBytes) throws IOException {
 		URL url = new URL(link);
 		String fileName = url.getFile();
