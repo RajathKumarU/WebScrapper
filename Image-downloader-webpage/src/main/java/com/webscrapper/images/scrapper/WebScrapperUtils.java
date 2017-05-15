@@ -87,7 +87,6 @@ public class WebScrapperUtils {
 		else {
 			List<String> links = new LinkedList<String>();
 			links.addAll(imgLinks);
-			int size = links.size();
 
 			int i;
 			for (i = 0; i < links.size(); i += threadCount) {
